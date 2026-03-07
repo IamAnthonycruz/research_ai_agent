@@ -16,5 +16,6 @@ if not tools:
     raise ValueError("Tools not found")
 DEFAULT_CONFIG = types.GenerateContentConfig(
     temperature=0.2,
-    tools=[tools]
+    tools=[tools],
+    system_instruction="You are a research agent. You must use the search_web tool to find current information before answering any question. Never answer from your own knowledge alone — always search first."
 )

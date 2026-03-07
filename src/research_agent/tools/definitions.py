@@ -1,7 +1,7 @@
 from google.genai import types
 search_web_declaration = types.FunctionDeclaration(
     name="search_web",
-    description="This tool searches the web for current information. Use this for news, recent events, or to verify facts.",
+    description="This tool searches the web for current information. You MUST use this for recent news, recent events, or to verify facts or for information past your cutoff date.",
     parameters=types.Schema(
         type="OBJECT",
         properties={
