@@ -3,9 +3,10 @@ import asyncio
 
 
 from google.genai import types, errors
-from research_agent.client import client, DEFAULT_CONFIG
+from pydantic import ValidationError
+from research_agent.client import build_structured_output_config, client, DEFAULT_CONFIG
 from research_agent.tools.handlers import search_web_handler
-
+from research_agent.schemas.web_search_schema import WebSearchResponse
 
 
 async def select_tool(tool_call):
@@ -14,7 +15,6 @@ async def select_tool(tool_call):
     match tool_name:
         case "search_web":
             res = await search_web_handler(**tool_call.args)
-            print("Handler:", res)
         case _:
             res = f"Unknown tool: {tool_name}"
     return res
@@ -31,7 +31,7 @@ def generate_content_helper(contents, config=DEFAULT_CONFIG):
 async def main():
     try:
         
-        prompt = "What happened in the news today?"
+        prompt = "Give me the latest developments in nuclear fusion energy"
         contents = [
             types.Content(
                 role="user", parts=[types.Part(text=prompt )]
@@ -48,8 +48,13 @@ async def main():
             )
             contents.append(response.candidates[0].content)
             contents.append(types.Content(role="user", parts=[function_response_part]))
-            response = generate_content_helper(contents=contents)
-            print(response.text)
+            response = generate_content_helper(contents=contents, config=build_structured_output_config(WebSearchResponse))
+            try:
+                result = WebSearchResponse.model_validate_json(response.text)
+                print(result)
+            except ValidationError as e:
+                print(f"An unexpected error occured: {e}")
+                raise
         else:
             print(response.text)
     except errors.APIError as e:

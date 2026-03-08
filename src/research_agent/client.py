@@ -19,3 +19,9 @@ DEFAULT_CONFIG = types.GenerateContentConfig(
     tools=[tools],
     system_instruction="You are a research agent. You must use the search_web tool to find current information before answering any question. Never answer from your own knowledge alone — always search first."
 )
+def build_structured_output_config(schema):
+    STRUCTURED_CONFIG = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=schema
+    )
+    return STRUCTURED_CONFIG
