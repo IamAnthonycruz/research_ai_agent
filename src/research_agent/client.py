@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from research_agent.tools.definitions import search_web_declaration
+from research_agent.tools.agent_prompts import default_config_system_prompt
 load_dotenv()
 gemini_key = os.getenv("GEMINI_API_KEY")
 if not gemini_key:
@@ -17,11 +18,5 @@ if not tools:
 DEFAULT_CONFIG = types.GenerateContentConfig(
     temperature=0.2,
     tools=[tools],
-    system_instruction="You are a research agent. You must use the search_web tool to find current information before answering any question. Never answer from your own knowledge alone — always search first."
+    system_instruction=default_config_system_prompt
 )
-def build_structured_output_config(schema):
-    STRUCTURED_CONFIG = types.GenerateContentConfig(
-        response_mime_type="application/json",
-        response_schema=schema
-    )
-    return STRUCTURED_CONFIG
