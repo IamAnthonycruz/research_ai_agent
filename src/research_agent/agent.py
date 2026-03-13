@@ -5,8 +5,8 @@ from typing import List
 
 from google.genai import types, errors
 from pydantic import ValidationError
-from research_agent.client import build_structured_output_config, client, DEFAULT_CONFIG
-from research_agent.tools.handlers import search_web_handler
+from research_agent.client import client, DEFAULT_CONFIG
+from research_agent.tools.handlers import search_web_handler, page_fetcher_handler
 from research_agent.schemas.web_search_schema import WebSearchResponse
 from research_agent.tools.agent_prompts import default_config_system_prompt
 
@@ -16,6 +16,8 @@ async def select_tool(tool_call):
     match tool_name:
         case "search_web":
             res = await search_web_handler(**tool_call.args)
+        case "fetch_page":
+            res = await page_fetcher_handler(**tool_call.args)
         case _:
             res = f"Unknown tool: {tool_name}"
     return res
@@ -74,6 +76,7 @@ async def agent_loop(topic:str, MAX_ATTEMPT=10):
             print(f"An unexpected error occured: {e}")
             raise
 async def main():
-    topic = "give the latest new on Iran Israel conflict"
+    topic = "What are the latest developments in nuclear fusion energy?"
     res,log = await agent_loop(topic=topic)
+    print(res)
 asyncio.run(main())
