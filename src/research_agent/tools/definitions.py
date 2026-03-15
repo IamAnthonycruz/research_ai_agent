@@ -29,3 +29,30 @@ page_fetcher_declaration = types.FunctionDeclaration(
     )
     
 )
+
+save_note_declaration = types.FunctionDeclaration(
+    name="save_note",
+    description="""After searching the web and retrieving the contents of a url use this tool to save any important 
+    information relevant to the research topic. Use this tool to mark anything of relevance.""",
+    parameters = types.Schema(
+        type="OBJECT",
+        properties={
+            "key": types.Schema(
+                type="STRING",
+                description="This is the key for the note. Make this a concise title that expresses what the note is about 3-5 words max"
+            ),
+            "content": types.Schema(
+                type="STRING",
+                description="This is the content of the note. Make it as concise yet thorough as possible 3-5 sentences max."
+            )
+            
+        },
+        required=["key", "content"]
+    )
+)
+get_notes_declaration = types.FunctionDeclaration(
+    name="get_all_notes",
+    description="""Use this tool to review saved notes. This will help you to get a better understanding of the information you have already gained and what is left to search for if anything.""",
+    
+
+)

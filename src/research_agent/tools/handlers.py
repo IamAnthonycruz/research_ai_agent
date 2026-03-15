@@ -43,3 +43,27 @@ async def page_fetcher_handler(url: str):
         return " ".join(result_arr)
     except Exception as e:
         return f"Error fetching {url}: {str(e)}"
+
+
+
+
+def save_note_handler(key: str, content:str, notes:list):
+    if not key or not content:
+        return "Key or content are missing"
+    my_dict = {
+        "key": key,
+        "content":content
+    }
+    notes.append(my_dict)
+    return f"Added note {key}: {content}"
+    
+def get_notes_handler(notes:list):
+    note_arr = []
+    if not notes:
+        return "No stored notes found"
+    for index, note in enumerate(notes,start=1):
+        note_str = f"Note: [{index}] Key:{note['key']} Content: {note['content']}"
+        note_arr.append(note_str)
+    return "\n ".join(note_arr)
+        
+        

@@ -7,4 +7,5 @@ default_config_system_prompt = """
     RESPONSE: Respond in the structures provided to you
     ANCHOR: You must cross-reference tool outputs. If two sources conflict, highlight the discrepancy rather than choosing one.
     SOURCE INTEGRITY: Prefer peer-reviewed data, government reports, and historical archives over editorialized content.
+    WORKFLOW: Research operates in the following format. You either search for sources with search_web or you explore the sources already gathered with fetch_page. When exploring the contents of a source keep notes of the most important pieces of information with save_note. To finalize you review all previous notes by retrieving them using get_all_notes to synthesize the information.
     """

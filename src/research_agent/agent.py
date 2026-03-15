@@ -6,11 +6,13 @@ from typing import List
 from google.genai import types, errors
 from pydantic import ValidationError
 from research_agent.client import client, DEFAULT_CONFIG
-from research_agent.tools.handlers import search_web_handler, page_fetcher_handler
+from research_agent.tools.handlers import get_notes_handler, search_web_handler, page_fetcher_handler, save_note_handler
 from research_agent.schemas.web_search_schema import WebSearchResponse
 from research_agent.tools.agent_prompts import default_config_system_prompt
 
-async def select_tool(tool_call):
+
+
+async def select_tool(tool_call, notes):
     tool_name = tool_call.name
     res = None
     match tool_name:
@@ -18,11 +20,15 @@ async def select_tool(tool_call):
             res = await search_web_handler(**tool_call.args)
         case "fetch_page":
             res = await page_fetcher_handler(**tool_call.args)
+        case "save_note":
+            res = save_note_handler(**tool_call.args, notes=notes)
+        case "get_all_notes":
+            res =  get_notes_handler(notes=notes)
         case _:
             res = f"Unknown tool: {tool_name}"
     return res
 
-def generate_content_helper(contents, config=DEFAULT_CONFIG):
+async def generate_content_helper(contents, config=DEFAULT_CONFIG):
     response = client.models.generate_content(
             model="gemini-2.5-flash", 
             contents=contents, 
@@ -34,6 +40,7 @@ def generate_content_helper(contents, config=DEFAULT_CONFIG):
 async def agent_loop(topic:str, MAX_ATTEMPT=10):
     curr_attempt = 0
     logger_arr = []
+    notes = []
     contents = [
                 types.Content(
                     role="user", parts=[types.Part(text=topic)]
@@ -42,11 +49,11 @@ async def agent_loop(topic:str, MAX_ATTEMPT=10):
     while curr_attempt < MAX_ATTEMPT:
         try:
             curr_attempt+=1
-            response = generate_content_helper(contents=contents)
+            response = await generate_content_helper(contents=contents)
             tool_call =  response.candidates[0].content.parts[0].function_call
             
             if tool_call:
-                res = await select_tool(tool_call=tool_call)
+                res = await select_tool(tool_call=tool_call, notes=notes)
                 function_response_part = types.Part.from_function_response(
                     name=tool_call.name,
                     response={"results":res}
