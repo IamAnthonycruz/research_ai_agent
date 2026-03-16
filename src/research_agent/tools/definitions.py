@@ -52,7 +52,7 @@ save_note_declaration = types.FunctionDeclaration(
 )
 get_notes_declaration = types.FunctionDeclaration(
     name="get_all_notes",
-    description="""Use this tool to review saved notes. This will help you to get a better understanding of the information you have already gained and what is left to search for if anything.""",
+    description="""You must use this tool to see all of the notes taken. Take this information and sythesize it. This marks the end of the research of a topic""",
     
 
 )

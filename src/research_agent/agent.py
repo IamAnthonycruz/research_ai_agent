@@ -28,19 +28,26 @@ async def select_tool(tool_call, notes):
             res = f"Unknown tool: {tool_name}"
     return res
 
-async def generate_content_helper(contents, config=DEFAULT_CONFIG):
-    response = client.models.generate_content(
-            model="gemini-2.5-flash", 
-            contents=contents, 
-            config=config
-        )
-    return response
-
+async def generate_content_helper(contents, config=DEFAULT_CONFIG, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=contents,
+                config=config
+            )
+            return response
+        except errors.ClientError as e:
+            if e.status == 429 and attempt < max_retries - 1:
+                await asyncio.sleep(12)
+            else:
+                raise
     
 async def agent_loop(topic:str, MAX_ATTEMPT=10):
     curr_attempt = 0
     logger_arr = []
     notes = []
+    
     contents = [
                 types.Content(
                     role="user", parts=[types.Part(text=topic)]
@@ -48,21 +55,26 @@ async def agent_loop(topic:str, MAX_ATTEMPT=10):
             ]
     while curr_attempt < MAX_ATTEMPT:
         try:
+            tools=[]
+            response_part_list = []
             curr_attempt+=1
             response = await generate_content_helper(contents=contents)
-            tool_call =  response.candidates[0].content.parts[0].function_call
-            
-            if tool_call:
-                res = await select_tool(tool_call=tool_call, notes=notes)
-                function_response_part = types.Part.from_function_response(
-                    name=tool_call.name,
-                    response={"results":res}
-                )
+            await asyncio.sleep(30)
+            for tool in response.candidates[0].content.parts:
+                tool_call =tool.function_call
+                if tool_call:
+                    tools.append(tool_call)
+            if len(tools) > 0:
+                for tool_call in tools:
+                    res = await select_tool(tool_call=tool_call, notes=notes)
+                    function_response_part = types.Part.from_function_response(
+                        name=tool_call.name,
+                        response={"results":res}
+                    )
+                    response_part_list.append(function_response_part)
                 logger_arr.append(response.candidates[0].content)
-                
                 contents.append(response.candidates[0].content)
-                contents.append(types.Content(role="user", parts=[function_response_part]))
-                
+                contents.append(types.Content(role="user", parts=response_part_list))
             else:
                 break
                 
@@ -72,10 +84,11 @@ async def agent_loop(topic:str, MAX_ATTEMPT=10):
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             raise
-    response = generate_content_helper(contents=contents, config=types.GenerateContentConfig(
+    response = await generate_content_helper(contents=contents, config=types.GenerateContentConfig(
             system_instruction=default_config_system_prompt,
             response_mime_type="application/json",
             response_schema=WebSearchResponse))
+    await asyncio.sleep(10)
     try:
         response = WebSearchResponse.model_validate_json(response.text)
         return response, logger_arr
