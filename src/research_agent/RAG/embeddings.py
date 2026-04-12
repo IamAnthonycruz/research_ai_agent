@@ -2,14 +2,14 @@ from ast import List
 
 from sentence_transformers import SentenceTransformer
 import numpy as np
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
-def text_embedder(text:list[str]):
-    filteredText = [s for s in text if s.strip()]
-    if len(filteredText) == 0:
-        return []
+
+class Embedder:
+    def __init__(self, hugging_face_transformer_model="all-MiniLM-L6-v2"):
+        self.model = SentenceTransformer(hugging_face_transformer_model)
     
-    return model.encode(filteredText)
-print(text_embedder(["hi"]))
-print(text_embedder([]))
-print(text_embedder([""]))
+    def embed(self, texts: list[str]):
+        filtered = [t for t in texts if t and t.strip()]
+        if not filtered:
+            return []
+        return self.model.encode(filtered).tolist()
