@@ -8,6 +8,9 @@ from pydantic import HttpUrl
 import requests
 import trafilatura
 
+from research_agent.RAG.chunk import Chunk
+from research_agent.RAG.storage import Storage
+
 async def search_web_handler(query:str):
     formatted_results = ""
     try:
@@ -30,21 +33,36 @@ async def search_web_handler(query:str):
         return f"Search failed: {str(e)}"
     return formatted_results
 
-async def page_fetcher_handler(url: str):
+async def page_fetcher_handler(url: str, storage: Storage):
     try:
+        print(f"[fetch] attempting {url}")
         fetched_page = trafilatura.fetch_url(url)
         if not fetched_page:
+            print(f"[fetch] fetch_url returned None for {url}")
             return f"Failed to fetch {url}"
-        result = trafilatura.extract(fetched_page)
-        if not result:
+
+        print(f"[fetch] got page, extracting...")
+        extracted = trafilatura.bare_extraction(fetched_page)
+        if not extracted or not extracted.text:
+            print(f"[fetch] bare_extraction failed or no text for {url}")
             return f"Fetched url but failed to extract content from {url}"
-        result_arr = result.split()
-        result_arr = result_arr[:3000]
+
+        text = extracted.text
+        title = extracted.title or url
+        print(f"[fetch] extracted '{title}' ({len(text.split())} words)")
+
+        chunks = Chunk.chunk_note(text=text, source_url=url, source_title=title)
+        print(f"[fetch] chunked into {len(chunks)} pieces")
+        if chunks:
+            storage.write(chunks)
+            print(f"[fetch] wrote to storage")
+
+        result_arr = text.split()[:3000]
         return " ".join(result_arr)
+
     except Exception as e:
+        print(f"[fetch] exception: {e}")
         return f"Error fetching {url}: {str(e)}"
-
-
 
 
 def save_note_handler(key: str, content:str, notes:list):
