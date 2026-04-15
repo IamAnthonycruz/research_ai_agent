@@ -29,7 +29,21 @@ page_fetcher_declaration = types.FunctionDeclaration(
     )
     
 )
-
+search_knowledge_base_declaration = types.FunctionDeclaration(
+    name="search_knowledge_base",
+    description="""Before or after searching the web query use this tool to query the knowledge base to see if there is any stored information"""
+    ,
+    parameters=types.Schema(
+        type="OBJECT",
+        properties={
+            "query": types.Schema(
+                type='STRING',
+                description="This is the query to search the vector store for"
+            )
+            
+        }
+    )
+)
 save_note_declaration = types.FunctionDeclaration(
     name="save_note",
     description="""After searching the web and retrieving the contents of a url use this tool to save any important 

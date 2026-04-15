@@ -5,6 +5,8 @@ from typing import List
 
 from google.genai import types, errors
 from pydantic import ValidationError
+from research_agent.RAG.embeddings import Embedder
+from research_agent.RAG.storage import Storage
 from research_agent.client import client, DEFAULT_CONFIG
 from research_agent.tools.handlers import get_notes_handler, search_web_handler, page_fetcher_handler, save_note_handler
 from research_agent.schemas.web_search_schema import WebSearchResponse
@@ -12,14 +14,14 @@ from research_agent.tools.agent_prompts import default_config_system_prompt
 
 
 
-async def select_tool(tool_call, notes):
+async def select_tool(tool_call, notes, storage):
     tool_name = tool_call.name
     res = None
     match tool_name:
         case "search_web":
             res = await search_web_handler(**tool_call.args)
         case "fetch_page":
-            res = await page_fetcher_handler(**tool_call.args)
+            res = await page_fetcher_handler(**tool_call.args, storage=storage)
         case "save_note":
             res = save_note_handler(**tool_call.args, notes=notes)
         case "get_all_notes":
@@ -47,7 +49,7 @@ async def agent_loop(topic:str, MAX_ATTEMPT=10):
     curr_attempt = 0
     logger_arr = []
     notes = []
-    
+    storage = Storage(db_path="./research_kb", embedder=Embedder())
     contents = [
                 types.Content(
                     role="user", parts=[types.Part(text=topic)]
@@ -57,6 +59,7 @@ async def agent_loop(topic:str, MAX_ATTEMPT=10):
         try:
             tools=[]
             response_part_list = []
+            
             curr_attempt+=1
             response = await generate_content_helper(contents=contents)
             await asyncio.sleep(30)
@@ -66,7 +69,7 @@ async def agent_loop(topic:str, MAX_ATTEMPT=10):
                     tools.append(tool_call)
             if len(tools) > 0:
                 for tool_call in tools:
-                    res = await select_tool(tool_call=tool_call, notes=notes)
+                    res = await select_tool(tool_call=tool_call, notes=notes, storage=storage)
                     function_response_part = types.Part.from_function_response(
                         name=tool_call.name,
                         response={"results":res}
@@ -84,6 +87,7 @@ async def agent_loop(topic:str, MAX_ATTEMPT=10):
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             raise
+    print(f"KB chunk count after research: {storage.collection.count()}")
     response = await generate_content_helper(contents=contents, config=types.GenerateContentConfig(
             system_instruction=default_config_system_prompt,
             response_mime_type="application/json",
